@@ -8,6 +8,10 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.CriteriaDefinition;
+import org.springframework.data.mongodb.core.query.Query;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -21,12 +25,13 @@ public class StudentApiApplication {
 	}
 
 	@Bean
-	CommandLineRunner runner(StudentRepository repository) {
+	CommandLineRunner runner(StudentRepository repository, MongoTemplate mongoTemplate) {
 		return args -> {
-			Student student1 = new Student(null,
+			String studentEmail = "jahmed@gmail.com";
+			Student student = new Student(null,
 					"Jamila",
 					"Ahmed",
-					"jahmed@gmail.com",
+					studentEmail,
 					Gender.FEMALE,
 					new Address("England",
 							"London",
@@ -35,20 +40,21 @@ public class StudentApiApplication {
 					BigDecimal.TEN,
 					LocalDateTime.now());
 
-			Student student2 = new Student(null,
-					"John",
-					"Doe",
-					"john.doe@yahoo.com",
-					Gender.MALE,
-					new Address("United States of America",
-							"Miami",
-							"33101"),
-					List.of("Computer Engineering", "Tests"),
-					BigDecimal.valueOf(35),
-					LocalDateTime.now());
+			Query query = new Query();
+			query.addCriteria(Criteria.where("email").is(studentEmail));
 
-			repository.insert(student1);
-			repository.insert(student2);
+			List<Student> students = mongoTemplate.find(query, Student.class);
+
+			if (students.size() > 1) {
+				throw new IllegalStateException("the email \'" + studentEmail + "\' already exists in our database");
+			}
+
+			if (students.isEmpty()) {
+				System.out.println("Inserting new student: " + student);
+				repository.insert(student);
+			} else {
+				System.out.println("Student already exists: [" + student + "]");
+			}
 
 		};
 

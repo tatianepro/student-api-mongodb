@@ -40,24 +40,35 @@ public class StudentApiApplication {
 					BigDecimal.TEN,
 					LocalDateTime.now());
 
-			Query query = new Query();
-			query.addCriteria(Criteria.where("email").is(studentEmail));
+			repository.findStudentByEmail(studentEmail)
+					.ifPresentOrElse(
+							s -> System.out.println("Student already exists: [" + student + "]"),
+							() -> { System.out.println("Inserting new student: " + student);
+									repository.insert(student); }
+					);
 
-			List<Student> students = mongoTemplate.find(query, Student.class);
-
-			if (students.size() > 1) {
-				throw new IllegalStateException("the email \'" + studentEmail + "\' already exists in our database");
-			}
-
-			if (students.isEmpty()) {
-				System.out.println("Inserting new student: " + student);
-				repository.insert(student);
-			} else {
-				System.out.println("Student already exists: [" + student + "]");
-			}
+//			usingMongoTemplateAndQuery(repository, mongoTemplate, studentEmail, student);
 
 		};
 
+	}
+
+	private void usingMongoTemplateAndQuery(StudentRepository repository, MongoTemplate mongoTemplate, String studentEmail, Student student) {
+		Query query = new Query();
+		query.addCriteria(Criteria.where("email").is(studentEmail));
+
+		List<Student> students = mongoTemplate.find(query, Student.class);
+
+		if (students.size() > 1) {
+			throw new IllegalStateException("the email \'" + studentEmail + "\' already exists in our database");
+		}
+
+		if (students.isEmpty()) {
+			System.out.println("Inserting new student: " + student);
+			repository.insert(student);
+		} else {
+			System.out.println("Student already exists: [" + student + "]");
+		}
 	}
 
 }
